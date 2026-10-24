@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Horizon Wheel — своё колесо фортуны</title>
+<style>
+:root{--bg:#0b1017;--panel:#151e29;--muted:#9eacba;--lime:#c7ff3d;--pink:#ff4f9a;--cyan:#4de7ff}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#1b3040 0,#0b1017 60%);color:#f4f7fb;font-family:Arial,Helvetica,sans-serif;min-height:100vh}
+.wrap{max-width:1120px;margin:auto;padding:28px 18px 50px}.top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.logo{font-size:clamp(24px,4vw,40px);font-weight:1000;letter-spacing:2px;font-style:italic}.logo span{color:var(--lime)}.tag{color:var(--muted);font-size:12px;letter-spacing:3px;margin-top:5px}
+.pill{border:1px solid #354452;border-radius:999px;padding:9px 13px;color:var(--lime);font-size:12px;letter-spacing:1px}
+.layout{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(290px,.75fr);gap:22px;margin-top:28px}
+.panel{background:linear-gradient(145deg,rgba(27,39,52,.96),rgba(15,23,32,.96));border:1px solid #2a3a48;border-radius:22px;padding:22px;box-shadow:0 20px 60px #0004}
+h2{margin:0 0 8px;font-size:21px}p.sub{margin:0 0 20px;color:var(--muted);font-size:14px;line-height:1.5}
+.wheelbox{position:relative;width:min(100%,520px);margin:12px auto 18px;aspect-ratio:1}
+canvas{width:100%;height:100%;display:block;filter:drop-shadow(0 14px 30px #0007)}
+.pointer{position:absolute;z-index:2;top:-4px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:18px solid transparent;border-right:18px solid transparent;border-top:36px solid var(--lime);filter:drop-shadow(0 3px 3px #0008)}
+.hub{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:20%;aspect-ratio:1;border-radius:50%;background:linear-gradient(145deg,#e7ff9d,#a5e900);border:7px solid #f5ffe0;box-shadow:0 0 0 5px #17212b,0 0 25px #bfff3c66;display:grid;place-items:center;color:#10170b;font-size:clamp(11px,2vw,18px);font-weight:1000}
+button{border:0;border-radius:12px;padding:13px 16px;font-size:14px;font-weight:800;cursor:pointer;transition:transform .15s,filter .15s}button:hover{filter:brightness(1.08);transform:translateY(-1px)}button:disabled{opacity:.5;cursor:wait;transform:none}
+.primary{background:var(--lime);color:#11180a;width:100%;padding:17px;font-size:16px;letter-spacing:1px}.secondary{background:#263544;color:#f4f7fb;border:1px solid #3b5060}.danger{background:#482532;color:#ffc4d8;border:1px solid #754055}
+.result{display:none;margin-top:16px;padding:15px;border-radius:14px;background:#202e26;border:1px solid #536b39}.result.show{display:block}.result small{color:#b6ca9c;letter-spacing:2px}.result strong{display:block;font-size:24px;margin-top:5px;color:var(--lime);overflow-wrap:anywhere}
+label{display:block;font-size:12px;color:#b9c5d0;margin:13px 0 6px}input,textarea{width:100%;background:#0d151d;border:1px solid #344655;border-radius:10px;padding:11px 12px;color:#f4f7fb;font:inherit;outline:none}input:focus,textarea:focus{border-color:var(--lime)}textarea{min-height:150px;resize:vertical;line-height:1.5}.help{font-size:12px;color:var(--muted);line-height:1.55;margin-top:8px}.buttons{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.buttons button{flex:1}
+.prize-list{display:flex;flex-direction:column;gap:7px;margin-top:14px;max-height:230px;overflow:auto}.prize{display:flex;align-items:center;gap:9px;padding:9px 10px;border:1px solid #2d3d4a;background:#111a23;border-radius:10px;font-size:13px}.dot{width:11px;height:11px;border-radius:3px;flex:none}.prize span:last-child{overflow-wrap:anywhere}
+footer{text-align:center;color:#758696;font-size:12px;margin-top:22px;line-height:1.6}
+@media(max-width:800px){.layout{grid-template-columns:1fr}.panel{padding:17px}.wrap{padding:20px 12px 35px}.wheelbox{width:min(100%,470px)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div><div class="logo">HORIZON <span>WHEEL</span></div><div class="tag">YOUR CARS. YOUR LUCK.</div></div>
+    <div class="pill">CUSTOM PRIZE WHEEL</div>
+  </header>
+  <div class="layout">
+    <section class="panel">
+      <h2>Колесо фортуны</h2>
+      <p class="sub">Добавь свои модели автомобилей справа — и крути колесо. Можно указать по одной машине на строку.</p>
+      <div class="wheelbox">
+        <div class="pointer"></div><canvas id="wheel" width="900" height="900" aria-label="Колесо фортуны"></canvas><div class="hub">HORIZON</div>
+      </div>
+      <button id="spin" class="primary">КРУТИТЬ КОЛЕСО</button>
+      <div id="result" class="result" role="status"><small>ТЕБЕ ВЫПАЛО</small><strong id="winner"></strong></div>
+    </section>
+    <aside class="panel">
+      <h2>Твои автомобили</h2>
+      <p class="sub">Впиши модели, которые должны быть на колесе. По умолчанию здесь примеры — замени их своими.</p>
+      <label for="cars">Одна модель в каждой строке</label>
+      <textarea id="cars" spellcheck="false">Nissan Skyline R34
+Toyota Supra
+BMW M3 G80
+Porsche 911 GT3
+Lamborghini Huracán
+Mercedes-AMG GT
+Mazda RX-7
+Ford Mustang</textarea>
+      <div class="buttons">
+        <button id="update" class="secondary">Обновить колесо</button>
+        <button id="reset" class="secondary">Примеры</button>
+      </div>
+      <div class="help">Совет: нажми «Обновить колесо» после редактирования списка. Изменения сохраняются в этом браузере на этом устройстве.</div>
+      <div id="count" class="help"></div>
+      <div id="prizes" class="prize-list"></div>
+      <div class="buttons"><button id="export" class="secondary">Скачать список (.txt)</button></div>
+    </aside>
+  </div>
+  <footer>Неофициальный фанатский проект, вдохновлённый эстетикой гоночных игр. Не связан с Forza или Microsoft.</footer>
+</div>
+<script>
+const canvas=document.getElementById('wheel'),ctx=canvas.getContext('2d');
+const input=document.getElementById('cars'),spinBtn=document.getElementById('spin');
+const result=document.getElementById('result'),winner=document.getElementById('winner');
+const listBox=document.getElementById('prizes'),count=document.getElementById('count');
+const colors=['#c7ff3d','#4de7ff','#ff4f9a','#ffc857','#8d7bff','#ff784f','#6ef2b2','#f2f5ff','#9ed0ff','#f68fff'];
+let items=[],rotation=0,spinning=false;
+const defaults='Nissan Skyline R34\\nToyota Supra\\nBMW M3 G80\\nPorsche 911 GT3\\nLamborghini Huracán\\nMercedes-AMG GT\\nMazda RX-7\\nFord Mustang';
+function loadSaved(){try{const saved=localStorage.getItem('horizonWheelCars');if(saved)input.value=saved}catch(e){}}
+function save(){try{localStorage.setItem('horizonWheelCars',input.value)}catch(e){}}
+function parseItems(){return input.value.split(/\\r?\\n/).map(x=>x.trim()).filter(Boolean).slice(0,40)}
+function draw(){
+ const n=items.length;ctx.clearRect(0,0,900,900);if(!n)return;
+ const cx=450,cy=450,r=420,arc=Math.PI*2/n;
+ for(let i=0;i<n;i++){
+  const start=rotation+i*arc-Math.PI/2,end=start+arc;
+  ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,start,end);ctx.closePath();
+  ctx.fillStyle=colors[i%colors.length];ctx.fill();ctx.strokeStyle='#101923';ctx.lineWidth=5;ctx.stroke();
+  ctx.save();ctx.translate(cx,cy);ctx.rotate(start+arc/2);
+  ctx.textAlign='right';ctx.textBaseline='middle';ctx.fillStyle='#101820';
+  const maxLen=n>16?13:n>10?17:23;let label=items[i];if(label.length>maxLen)label=label.slice(0,maxLen-1)+'…';
+  ctx.font=`bold ${n>18?19:n>12?22:27}px Arial`;ctx.fillText(label,r-26,0, r*.65);ctx.restore();
+ }
+ ctx.beginPath();ctx.arc(cx,cy,70,0,Math.PI*2);ctx.fillStyle='#14202b';ctx.fill();ctx.strokeStyle='#f3ffd0';ctx.lineWidth=8;ctx.stroke();
+ ctx.fillStyle='#c7ff3d';ctx.font='bold 27px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('SPIN',cx,cy);
+}
+function renderList(){
+ listBox.innerHTML='';items.forEach((item,i)=>{const row=document.createElement('div');row.className='prize';const dot=document.createElement('i');dot.className='dot';dot.style.background=colors[i%colors.length];const label=document.createElement('span');label.textContent=item;row.append(dot,label);listBox.append(row)});
+ count.textContent=`На колесе: ${items.length} ${items.length===1?'автомобиль':items.length<5?'автомобиля':'автомобилей'} (максимум 40).`;
+}
+function update(){const parsed=parseItems();if(parsed.length<2){alert('Добавь минимум две модели автомобиля — по одной на строку.');return false}items=parsed;save();draw();renderList();result.classList.remove('show');return true}
+function spin(){
+ if(spinning||items.length<2)return;spinning=true;spinBtn.disabled=true;result.classList.remove('show');
+ const chosen=Math.floor(Math.random()*items.length),arc=Math.PI*2/items.length;
+ // Pointer sits at -90 degrees. Align the chosen sector's center under it.
+ const targetMod=((-(chosen+.5)*arc)%(Math.PI*2)+Math.PI*2)%(Math.PI*2);
+ const currentMod=((rotation%(Math.PI*2))+(Math.PI*2))%(Math.PI*2);
+ const delta=((targetMod-currentMod)%(Math.PI*2)+Math.PI*2)%(Math.PI*2);
+ const start=rotation,duration=4800+Math.random()*900,extra=Math.PI*2*(5+Math.floor(Math.random()*3))+delta;
+ const end=start+extra,t0=performance.now();
+ function frame(now){const t=Math.min(1,(now-t0)/duration),ease=1-Math.pow(1-t,5);rotation=start+(end-start)*ease;draw();if(t<1)requestAnimationFrame(frame);else{rotation=targetMod;draw();winner.textContent=items[chosen];result.classList.add('show');spinning=false;spinBtn.disabled=false}}
+ requestAnimationFrame(frame);
+}
+document.getElementById('update').addEventListener('click',update);
+document.getElementById('reset').addEventListener('click',()=>{input.value=defaults;update()});
+spinBtn.addEventListener('click',spin);
+document.getElementById('export').addEventListener('click',()=>{const blob=new Blob([items.join('\\n')+'\\n'],{type:'text/plain;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='my-car-list.txt';a.click();URL.revokeObjectURL(a.href)});
+loadSaved();update();
+</script>
+</body>
+</html>
